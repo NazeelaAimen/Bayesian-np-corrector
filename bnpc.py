@@ -13,6 +13,9 @@ from scipy.signal import periodogram
 from scipy.interpolate import interp1d
 from skfda.misc.regularization import L2Regularization    
 from skfda.misc.operators import LinearDifferentialOperator
+from lisainstrument import Instrument
+from pytdi import Data
+
 
 def ar1(n, a, sig):
     #AR1 time series
@@ -36,12 +39,25 @@ def ar4(n, a1, a2, a3, a4, sig):
     return y
 
 
-def makepdgrm(y): 
+def makepdgrm(y,fs=None): 
     # when fs=1
     n = len(y)
     pdgrm = np.abs(np.fft.fft(y))**2 / n
     pdgrm = pdgrm[:(n//2)] # one sided periodogram
-    f = np.linspace(0, 0.5, len(pdgrm)) # Fourier frequencies
+    f = np.linspace(0, 0.5, len(pdgrm))
+    if fs is not None:
+        print('fs was given')
+        pdgrm=pdgrm*2/fs
+        f=f*fs/2
+    # Fourier frequencies
+    return {'pdgrm': pdgrm[1:], 'f': f[1:]}
+
+def makepdgrm_pi(y): 
+    # when fs=1
+    n = len(y)
+    pdgrm = np.abs(np.fft.fft(y))**2 / (2*np.pi*n)
+    pdgrm = pdgrm[:(n//2)] # one sided periodogram
+    f = np.linspace(0, np.pi, len(pdgrm))#freq from 0 to pi
     return {'pdgrm': pdgrm[1:], 'f': f[1:]}
 
 def s_ar1(a, sig2, f):
@@ -52,12 +68,21 @@ def s_ar2(a1, a2, sig2, f):
     #AR2 spectrum
     return sig2 / (1 + a1**2 + a2**2 + 2 * a1 * (a2 - 1) * np.cos(2 * np.pi * f) - 2 * a2 * np.cos(4 * np.pi * f))
 
+def s_ar2e(a1, a2, a3, a4, sig2, f):
+    psd=sig2/(np.abs(1-a1*np.exp(1j*2*np.pi*f)-a2*np.exp(1j*4*np.pi*f)))**2
+    return psd
+
 def s_ar4(a1, a2, a3, a4, sig2, f):
     #AR4 spectrum
     real_part = (1-a1*np.cos(2*np.pi*f)- a2*np.cos(4*np.pi*f)- a3* np.cos(6*np.pi*f)- a4 * np.cos(8*np.pi*f))**2
     imag_part = (a1*np.sin(2*np.pi*f)+ a2*np.sin(4*np.pi*f)+ a3* np.sin(6*np.pi*f)+ a4 * np.sin(8*np.pi*f))**2 
     psd = sig2 / (real_part + imag_part) 
     return psd
+
+def s_ar4e(a1, a2, a3, a4, sig2, f):
+    psd=sig2/(np.abs(1-a1*np.exp(1j*2*np.pi*f)-a2*np.exp(1j*4*np.pi*f)-a3*np.exp(1j*6*np.pi*f)-a4*np.exp(1j*8*np.pi*f)))**2
+    return psd
+
 
 def dens(lam,splines):
     #Spline PSD
@@ -151,26 +176,6 @@ def generate_basis_matrix(knots,grid_points,degree, normalised: bool = True) -> 
         return basis_matrix   
  
 
-def update_cov(X, covObj=None):#patricio code
-    if covObj is None or all(np.isnan(covObj)):
-        covObj = {'mean': X, 'cov': None, 'n': 1}
-        return covObj
-    
-    covObj['n'] += 1  # Update number of observations
-    
-    if covObj['n'] == 2:
-        X1 = covObj['mean']
-        covObj['mean'] = X1 / 2 + X / 2
-        dX1 = X1 - covObj['mean']
-        dX2 = X - covObj['mean']
-        covObj['cov'] = np.dot(dX1.T, dX1) + np.dot(dX2.T, dX2)
-        return covObj
-    
-    dx = covObj['mean'] - X  # previous mean minus new X
-    covObj['cov'] = covObj['cov'] * (covObj['n'] - 2) / (covObj['n'] - 1) + np.dot(dx.T, dx) / covObj['n']
-    covObj['mean'] = covObj['mean'] * (covObj['n'] - 1) / covObj['n'] + X / covObj['n']
-    return covObj
-
 def panelty_datvar(d,knots,degree=3,epsi=1e-6):
     basis=BSplineBasis(knots=knots,order=degree+1)
     regularization = L2Regularization(
@@ -229,7 +234,7 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
     # P = diffMatrix(k, d=2)
     # P = np.matmul(np.transpose(P), P)
     # data variations:
-    P=panelty_datvar(d=2,knots=knots,degree=degree)
+    P=panelty_datvar(d=1,knots=knots,degree=degree)
      
     #splines:
     splines_mat[0,:]=dens(lam,splines.T)
@@ -384,79 +389,4 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
     return result
 
 
-#Quick start commands:
-    
-if(False):
-    # AR4 parameters
-    a1=0.9
-    a2=-0.9
-    a3=0.9
-    a4=-0.9
-    sd=2
-    n = 10100
-    a1p=0.2416
-    sig2p=30.24
-    
-    # Generate AR(4) process
-    y = ar4(n, a1, a2, a3, a4, sd)
-    y_c = y[100:] - np.mean(y[100:])#discart first 100 values
 
-    #periodogram
-    pdgrm = makepdgrm(y_c)
-    f = pdgrm['f']
-
-    #parametric model:
-    spar = s_ar1(a1p, sig2p, f)
-
-    #true AR PSD
-    truepsd=s_ar4(a1,a2,a3,a4,sd,f)
-    
-    k=25
-    degree=3
-    # Run MCMC
-    # alphastart is for variable alpha. If not included means the alpha is constant 
-    # Constant alpha value can be set in the psd function.
-    result=mcmc(y_c, 6000, k,1000,spar,modelnum=1)
-
-    knots=result['knots']
-    lam=result['lambda']
-    spline_psd=result['splines_psd']
-    S=result['psd']
-
-    spline_psd_med=np.quantile(np.sort(spline_psd,axis=0),q=0.5,axis=0)
-    spline_psd_q1=np.quantile(np.sort(spline_psd,axis=0),q=0.05,axis=0)
-    spline_psd_q2=np.quantile(np.sort(spline_psd,axis=0),q=0.95,axis=0)
-
-    S_med=np.quantile(np.sort(S,axis=0),q=0.5,axis=0)
-    S_q1=np.quantile(np.sort(S,axis=0),q=0.05,axis=0)
-    S_q2=np.quantile(np.sort(S,axis=0),q=0.95,axis=0)
-    
-    # PSD plot
-    plt.plot(f, pdgrm['pdgrm'], linestyle='-', color='black', alpha=0.5, label='Periodogram')
-
-    plt.plot(f, spline_psd_med, linestyle='-', color='purple', label='Splines')
-    plt.fill_between(f,spline_psd_q1,spline_psd_q2,color='purple',alpha=0.2,linewidth=0.0)
-    plt.plot(f, spar, linestyle='-', color='blue', label='AR1')
-    plt.fill_between(f,S_q1,S_q2,color='red',alpha=0.5,linewidth=0.0)
-    plt.plot(f, S_med, linestyle='-', color='red', label='Estimated')
-    plt.plot(f, truepsd, linestyle='--', color='orange', label='True')
-    plt.yscale('log')
-    plt.xlabel('Frequency')
-    plt.ylabel('PSD')
-    plt.vlines(knots,0,5e-4, color='green',alpha=0.5, label='knots')
-
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
-    
-    plt.savefig('PSD.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # Lambda plot
-    plt.figure(figsize=(6, 10))  
-    plt.imshow(result['lambda'], cmap='tab10', aspect='auto')
-    plt.colorbar(label='Lambda')
-    plt.title('Lambda Matrix')
-    plt.xlabel('Number')
-    plt.ylabel('Iterations')
-    plt.savefig('lam.png',dpi=250)
-    plt.show()
-    
