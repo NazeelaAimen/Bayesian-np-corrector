@@ -59,6 +59,9 @@ class MCMCdata:
         obj.lnl = mcmc["ll.trace"]
         obj.samples = np.array([mcmc["phi"], mcmc["delta"], mcmc["tau"]]).T
         return obj
+
+
+
 # Load the R script containing the function
 random_seed = 0  
 robjects.r['set.seed'](random_seed)

@@ -13,8 +13,6 @@ from scipy.signal import periodogram
 from scipy.interpolate import interp1d
 from skfda.misc.regularization import L2Regularization    
 from skfda.misc.operators import LinearDifferentialOperator
-from lisainstrument import Instrument
-from pytdi import Data
 
 
 def ar1(n, a, sig):
