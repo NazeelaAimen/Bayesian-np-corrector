@@ -15,73 +15,25 @@ from skfda.misc.regularization import L2Regularization
 from skfda.misc.operators import LinearDifferentialOperator
 from lisainstrument import Instrument
 from pytdi import Data
+import rpy2.robjects as robjects
+from rpy2.robjects import default_converter, numpy2ri
+from scipy.stats import multivariate_normal
 
+from scipy.stats import median_abs_deviation
 
-def ar1(n, a, sig):
-    #AR1 time series
-    y = np.zeros(n)
-    for t in range(1, n):
-        y[t] = a * y[t-1] + np.random.normal(loc=0, scale=sig)
-    return y
+def mad(x):
+   return np.median(abs(x - np.median(x)))
 
-def ar2(n, a1, a2, sig):
-    #AR2 time series
-    y = np.zeros(n)
-    for t in range(2, n):
-        y[t] = a1 * y[t-1] + a2 * y[t-2] + np.random.normal(loc=0, scale=sig)
-    return y
+def uniformmax(sample):
+    median = np.median(sample)
+    mad = mad(sample)
+    abs_deviation = np.abs(sample - median)
+    
+    normalized_deviation = abs_deviation / mad
+    max_deviation = np.nanmax(normalized_deviation)
+    
+    return max_deviation
 
-def ar4(n, a1, a2, a3, a4, sig):
-    #AR4 time series
-    y = np.zeros(n)
-    for t in range(4, n):
-        y[t] = a1 * y[t-1] + a2 * y[t-2] + a3 * y[t-3] + a4 * y[t-4] + np.random.normal(loc=0, scale=sig)
-    return y
-
-
-def makepdgrm(y,fs=None): 
-    # when fs=1
-    n = len(y)
-    pdgrm = np.abs(np.fft.fft(y))**2 / n
-    pdgrm = pdgrm[:(n//2)] # one sided periodogram
-    f = np.linspace(0, 0.5, len(pdgrm))
-    if fs is not None:
-        print('fs was given')
-        pdgrm=pdgrm*2/fs
-        f=f*fs/2
-    # Fourier frequencies
-    return {'pdgrm': pdgrm[1:], 'f': f[1:]}
-
-def makepdgrm_pi(y): 
-    # when fs=1
-    n = len(y)
-    pdgrm = np.abs(np.fft.fft(y))**2 / (2*np.pi*n)
-    pdgrm = pdgrm[:(n//2)] # one sided periodogram
-    f = np.linspace(0, np.pi, len(pdgrm))#freq from 0 to pi
-    return {'pdgrm': pdgrm[1:], 'f': f[1:]}
-
-def s_ar1(a, sig2, f):
-    #AR1 spectrum
-    return sig2 / (1 + a**2 - 2 * a * np.cos(2 * np.pi * f))
-
-def s_ar2(a1, a2, sig2, f):
-    #AR2 spectrum
-    return sig2 / (1 + a1**2 + a2**2 + 2 * a1 * (a2 - 1) * np.cos(2 * np.pi * f) - 2 * a2 * np.cos(4 * np.pi * f))
-
-def s_ar2e(a1, a2, a3, a4, sig2, f):
-    psd=sig2/(np.abs(1-a1*np.exp(1j*2*np.pi*f)-a2*np.exp(1j*4*np.pi*f)))**2
-    return psd
-
-def s_ar4(a1, a2, a3, a4, sig2, f):
-    #AR4 spectrum
-    real_part = (1-a1*np.cos(2*np.pi*f)- a2*np.cos(4*np.pi*f)- a3* np.cos(6*np.pi*f)- a4 * np.cos(8*np.pi*f))**2
-    imag_part = (a1*np.sin(2*np.pi*f)+ a2*np.sin(4*np.pi*f)+ a3* np.sin(6*np.pi*f)+ a4 * np.sin(8*np.pi*f))**2 
-    psd = sig2 / (real_part + imag_part) 
-    return psd
-
-def s_ar4e(a1, a2, a3, a4, sig2, f):
-    psd=sig2/(np.abs(1-a1*np.exp(1j*2*np.pi*f)-a2*np.exp(1j*4*np.pi*f)-a3*np.exp(1j*6*np.pi*f)-a4*np.exp(1j*8*np.pi*f)))**2
-    return psd
 
 
 def dens(lam,splines):
@@ -104,7 +56,7 @@ def psd(Snpar, Spar=1, alpha=1, modelnum=0):
     return(S)
 
 def loglike(pdgrm, S):
-    lnlike = -1* np.sum(S + np.exp(np.log(pdgrm) - S - np.log(2)))
+    lnlike = -1* np.sum(S + np.exp(np.log(pdgrm) - S)-np.log(2*np.pi))
     return lnlike
 
 def lamb_lprior(lam, phi, P, k):
@@ -128,27 +80,6 @@ def diffMatrix(k, d=2):
         out = np.diff(out, axis=0)
     return out
 
-
-def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patricio's pspline paper
-    aux = np.sqrt(data)
-    dens = np.abs(aux - np.mean(aux)) / np.std(aux)
-    n = len(data)
-
-    dens = dens / np.sum(dens)
-    cumf = np.cumsum(dens)
-
-    df = interp1d(
-        np.linspace(0, 1, num=n), cumf, kind="linear", fill_value=(0, 1)
-    )
-
-    invDf = interp1d(
-        df(np.linspace(0, 1, num=n)),
-        np.linspace(0, 1, num=n),
-        kind="linear",
-        fill_value=(0, 1),
-        bounds_error=False,
-    )
-    return invDf(np.linspace(0, 1, num=n_knots))
 
 def generate_basis_matrix(knots,grid_points,degree, normalised: bool = True) -> np.ndarray:#slipper pspline psd
         basis = BSplineBasis(knots=knots,order=degree+1).to_basis()
@@ -176,6 +107,35 @@ def generate_basis_matrix(knots,grid_points,degree, normalised: bool = True) -> 
         return basis_matrix   
  
 
+def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patricio's pspline paper
+    aux = np.sqrt(data)
+    dens = np.abs(aux - np.mean(aux)) / np.std(aux)
+    n = len(data)
+
+    dens = dens / np.sum(dens)
+    cumf = np.cumsum(dens)
+
+    df = interp1d(
+        np.linspace(0, 1, num=n), cumf, kind="linear", fill_value=(0, 1)
+    )
+
+    invDf = interp1d(
+        df(np.linspace(0, 1, num=n)),
+        np.linspace(0, 1, num=n),
+        kind="linear",
+        fill_value=(0, 1),
+        bounds_error=False,
+    )
+    return invDf(np.linspace(0, 1, num=n_knots))
+
+def panelty_datvar_r(k,degree,d,knots):
+    robjects.r['source']('penalty.R')
+    panelty = robjects.globalenv['panelty']
+    np_cv_rules = default_converter + numpy2ri.converter
+    with np_cv_rules.context():
+     p=panelty(k,degree,d,knots)   
+    return p
+
 def panelty_datvar(d,knots,degree=3,epsi=1e-6):
     basis=BSplineBasis(knots=knots,order=degree+1)
     regularization = L2Regularization(
@@ -185,19 +145,37 @@ def panelty_datvar(d,knots,degree=3,epsi=1e-6):
     p / np.max(p)
     return p + epsi * np.eye(p.shape[1])
 
-def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
+def updateCov(X, cov_obj=None):
+    if cov_obj is None:
+        cov_obj = {'mean': X, 'cov': None, 'n': 1}
+        return cov_obj
+
+    cov_obj['n'] += 1  # Update number of observations
+
+    if cov_obj['n'] == 2:
+        X1 = cov_obj['mean']
+        cov_obj['mean'] = X1 / 2 + X / 2
+        dX1 = X1 - cov_obj['mean']
+        dX2 = X - cov_obj['mean']
+        cov_obj['cov'] = np.outer(dX1, dX1) + np.outer(dX2, dX2)
+        return cov_obj
+
+    dx = cov_obj['mean'] - X  # previous mean minus new X
+    cov_obj['cov'] = cov_obj['cov'] * (cov_obj['n'] - 2) / (cov_obj['n'] - 1) + np.outer(dx, dx) / cov_obj['n']
+    cov_obj['mean'] = cov_obj['mean'] * (cov_obj['n'] - 1) / cov_obj['n'] + X / cov_obj['n']
+    return cov_obj
+
+
+def mcmc(pdgrm,n,k,burnin,f,Spar=1,degree=3,modelnum=1,alphastart=None):
     delta = np.zeros(n)
     phi = np.zeros(n)
     llike = np.zeros(n)
     logpost = np.zeros(n)
-    # pdgrm
-    pdgrm = makepdgrm(tseries)
-    f = pdgrm['f']
     lam_mat=np.zeros((n,k))
-    splines_mat=np.zeros((n,len(pdgrm['pdgrm'])))
-    psd_mat=np.zeros((n,len(pdgrm['pdgrm'])))
+    splines_mat=np.zeros((n,len(pdgrm)))
+    psd_mat=np.zeros((n,len(pdgrm)))
     # Initial values
-    lam = pdgrm['pdgrm'] / np.sum(pdgrm['pdgrm'])
+    lam = pdgrm / np.sum(pdgrm)
     lam = lam[np.round(np.linspace(0, len(lam) - 1, k)).astype(int)]
     lam[lam == 0] = 1e-50
     lam_mat[0,:]=lam
@@ -217,24 +195,16 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
 
     # Knots over Fourier frequencies
     K = k - degree + 1
-    #knots = np.linspace(min(f), max(f), num=K)#Equidistant
-    #difference knots:
-    data=abs(Spar-pdgrm['pdgrm'])
-    knots=data_peak_knots(data,K)
+    # data=abs(Spar-pdgrm)
+    knots=data_peak_knots(pdgrm,K)
     m = max(f) - min(f)
     c = min(f)
     knots = m * knots + c #Linear translation from [0,1] to fourier frequencies range
-
     #making basis matrix:
-    gridp=np.linspace(knots[0],knots[-1],len(pdgrm['pdgrm']))
+    gridp=np.linspace(knots[0],knots[-1],len(pdgrm))
     splines=generate_basis_matrix(knots,gridp,3)
-   
-    #Panelty matrix
-    #linear
-    # P = diffMatrix(k, d=2)
-    # P = np.matmul(np.transpose(P), P)
-    # data variations:
-    P=panelty_datvar(d=1,knots=knots,degree=degree)
+    P=panelty_datvar(d=2,knots=knots,degree=degree)      
+    #P=panelty_datvar(k,degree,1,knots)
      
     #splines:
     splines_mat[0,:]=dens(lam,splines.T)
@@ -242,68 +212,63 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
     if alphastart==None:
         #for constant alpha
         S=psd(splines_mat[0,:], Spar=Spar,  modelnum=modelnum)
-        llike[0] = loglike(pdgrm=pdgrm['pdgrm'], S=S)
+        llike[0] = loglike(pdgrm=pdgrm, S=S)
         logpost[0] = lpost(llike[0], lamb_lprior(lam, phi[0], P, k),
                             phi_lprior(phi[0], delta[0]),
                             delta_lprior(delta[0]))
     else:
         #for variable alpha
         S=psd(splines_mat[0,:], Spar=Spar, alpha=alpha[0], modelnum=modelnum)
-        llike[0] = loglike(pdgrm=pdgrm['pdgrm'], S=S)
+        llike[0] = loglike(pdgrm=pdgrm, S=S)
         logpost[0] = lpost(llike[0], lamb_lprior(lam, phi[0], P, k),
                       phi_lprior(phi[0], delta[0]),
                       delta_lprior(delta[0]),
                       alpha_lprior(alpha[0]))
     psd_mat[0,:]=S
+    Uv_am = np.random.uniform(0, 1, n)
+    Uv = np.log(np.random.uniform(0, 1, n))
+    covObj = updateCov(lam, None)
+    Ik = (0.1**2) * np.diag(np.ones(k) / k)
+    c_amh = (2.38**2) / k
+    count = []
     for i in range(1,n):
+        
         # updating lambda
         # based on Patricio's pspline paper
-        if accept_frac < 0.30:  
-            sigma = sigma * 0.90 
-        elif accept_frac > 0.50:  
-            sigma = sigma * 1.1  
-        accept_count = 0
-        aux = np.arange(0, k)
-        np.random.shuffle(aux)
-        for g in range(0, len(lam)):
-            z = np.random.normal()
-            u = np.log(np.random.uniform())
-            pos = aux[g]
-            lam_p=lam[pos]
-            lam_star = lam_p + sigma * z
-            
-            if alphastart==None:
-                ftheta = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(dens(lam,splines.T), Spar=Spar,  modelnum=modelnum)),
-                                lamb_lprior(lam, phi[i - 1], P, k),
+        if (Uv_am[i] < 0.05) or (i <= 2*k):
+            lam_star = multivariate_normal.rvs(mean=lam, cov=Ik)
+        else:
+            lam_star = multivariate_normal.rvs(mean=lam, cov=c_amh * upcov)
+        if alphastart==None:
+            ftheta = lpost(loglike(pdgrm=pdgrm, S=psd(dens(lam,splines.T), Spar=Spar,  modelnum=modelnum)),
+                            lamb_lprior(lam, phi[i - 1], P, k),
+                            phi_lprior(phi[i - 1], delta[i - 1]),
+                            delta_lprior(delta[i - 1]))
+            ftheta_star = lpost(loglike(pdgrm=pdgrm, S=psd(dens(lam_star,splines.T), Spar=Spar,  modelnum=modelnum)),
+                                lamb_lprior(lam_star, phi[i - 1], P, k),
                                 phi_lprior(phi[i - 1], delta[i - 1]),
                                 delta_lprior(delta[i - 1]))
-                lam[pos] = lam_star
-                ftheta_star = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(dens(lam,splines.T), Spar=Spar,  modelnum=modelnum)),
-                                    lamb_lprior(lam, phi[i - 1], P, k),
-                                    phi_lprior(phi[i - 1], delta[i - 1]),
-                                    delta_lprior(delta[i - 1]))
-            else:
-                ftheta = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(dens(lam,splines.T), Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
-                              lamb_lprior(lam, phi[i - 1], P, k),
-                              phi_lprior(phi[i - 1], delta[i - 1]),
-                              delta_lprior(delta[i - 1]),
-                              alpha_lprior(alpha[i - 1]))
-                lam[pos] = lam_star
-                ftheta_star = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(dens(lam,splines.T), Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
-                                lamb_lprior(lam, phi[i - 1], P, k),
-                                phi_lprior(phi[i - 1], delta[i - 1]),
-                                delta_lprior(delta[i - 1]),
-                                alpha_lprior(alpha[i - 1]))
-            
-            
-            A = np.min([0, ftheta_star - ftheta])
-            if u>A:
-                lam[pos]=lam_p
-            else:
-                accept_count+=1
-        accept_frac = accept_count / k
+        else:
+            ftheta = lpost(loglike(pdgrm=pdgrm, S=psd(dens(lam,splines.T), Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
+                          lamb_lprior(lam, phi[i - 1], P, k),
+                          phi_lprior(phi[i - 1], delta[i - 1]),
+                          delta_lprior(delta[i - 1]),
+                          alpha_lprior(alpha[i - 1]))
+            ftheta_star = lpost(loglike(pdgrm=pdgrm, S=psd(dens(lam_star,splines.T), Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
+                            lamb_lprior(lam, phi[i - 1], P, k),
+                            phi_lprior(phi[i - 1], delta[i - 1]),
+                            delta_lprior(delta[i - 1]),
+                            alpha_lprior(alpha[i - 1]))
+        A = np.min([0, ftheta_star - ftheta])
+        if Uv[i]<A:
+            lam=lam_star
+            count.append(1)
+        else:
+            count.append(0)
         splines_mat[i,:]=dens(lam,splines.T)
         lam_mat[i,:]=lam
+        covObj = updateCov(lam, covObj)
+        upcov=covObj['cov']
 
         # Sampling phi
         a_phi = k / 2 + 1
@@ -323,12 +288,12 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
             while alpha[i] < 0 or alpha[i] > 1:
                 alpha[i] = np.random.normal(alpha[i - 1], 1)
             
-            ftheta = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(splines_mat[i,:], Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
+            ftheta = lpost(loglike(pdgrm=pdgrm, S=psd(splines_mat[i,:], Spar=Spar, alpha=alpha[i - 1],  modelnum=modelnum)),
                             lamb_lprior(lam, phi[i], P, k),
                             phi_lprior(phi[i], delta[i]),
                             delta_lprior(delta[i]),
                             alpha_lprior(alpha[i-1]))
-            ftheta_star = lpost(loglike(pdgrm=pdgrm['pdgrm'], S=psd(splines_mat[i,:], Spar=Spar, alpha=alpha[i],  modelnum=modelnum)),
+            ftheta_star = lpost(loglike(pdgrm=pdgrm, S=psd(splines_mat[i,:], Spar=Spar, alpha=alpha[i],  modelnum=modelnum)),
                                 lamb_lprior(lam, phi[i], P, k),
                                 phi_lprior(phi[i], delta[i]),
                                 delta_lprior(delta[i]),
@@ -340,7 +305,7 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
             if np.log(np.random.rand()) > A:
                 alpha[i] = alpha[i - 1]
             S=psd(splines_mat[i,:], Spar=Spar, alpha=alpha[i], modelnum=modelnum)
-            llike[i] = loglike(pdgrm=pdgrm['pdgrm'], S=S)
+            llike[i] = loglike(pdgrm=pdgrm, S=S)
             logpost[i] = lpost(llike[i], lamb_lprior(lam, phi[i], P, k),
                                 phi_lprior(phi[i], delta[i]),
                                 delta_lprior(delta[i]),
@@ -349,7 +314,7 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
         
         else:
             S=psd(splines_mat[i,:], Spar=Spar, modelnum=modelnum)
-            llike[i] = loglike(pdgrm=pdgrm['pdgrm'], S=S)
+            llike[i] = loglike(pdgrm=pdgrm, S=S)
             logpost[i] = lpost(llike[i], lamb_lprior(lam, phi[i], P, k),
                                 phi_lprior(phi[i], delta[i]),
                                 delta_lprior(delta[i]))
@@ -371,8 +336,8 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
                   'logpost': logpost,
                   'lambda': lam_mat,
                   'knots': knots,
-                  'splines_psd':np.exp(splines_mat),
-                  'psd':np.exp(psd_mat)}
+                  'splines_psd':splines_mat,
+                  'psd':psd_mat}
     else:
         alpha = alpha[burnin:n]
         result = {'phi': phi,
@@ -382,8 +347,8 @@ def mcmc(tseries,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None):
                   'lambda': lam_mat,
                   'knots': knots,
                   'alpha': alpha,
-                  'splines_psd':np.exp(splines_mat),
-                  'psd':np.exp(psd_mat)}
+                  'splines_psd':splines_mat,
+                  'psd':psd_mat}
     
 
     return result
