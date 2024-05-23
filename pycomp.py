@@ -18,6 +18,18 @@ import rpy2.robjects as robjects
 import pickle
 
 # def uniformmax():
+def mad(x):
+   return np.median(abs(x - np.median(x)))
+
+def uniformmax(sample):
+    median = np.median(sample)
+    mad = mad(sample)
+    abs_deviation = np.abs(sample - median)
+    
+    normalized_deviation = abs_deviation / mad
+    max_deviation = np.nanmax(normalized_deviation)
+    
+    return max_deviation
     
 
 class MCMCdata:
@@ -173,8 +185,8 @@ psd1_u95 = psd_med1 + c_value * psd_mad[1:-1]
 psd1_u05 = psd_med1 - c_value * psd_mad[1:-1]
 
 #assert
-psd_help =np.apply_along_axis(bnpc.uniformmax, 1, S1)
-psd_mad =np.apply_along_axis(bnpc.mad, 1, S1)
+psd_help =np.apply_along_axis(uniformmax, 1, S1)
+psd_mad =np.apply_along_axis(mad, 1, S1)
 c_value = np.quantile(psd_help, 0.9)
 
 
