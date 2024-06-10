@@ -30,6 +30,9 @@ def uniformmax(sample):
     
     return max_deviation
 
+def cent_series(series):
+    return((series-np.mean(series))/np.std(series))
+
 def compute_iae(psd, truepsd,n): #note use PSD not log PSD
     return sum(abs(psd - truepsd)) * 2* np.pi / n
 
@@ -420,7 +423,8 @@ def mcmc(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,fs=N
                   'lambda': lam_mat,
                   'knots': knots,
                   'splines_psd':splines_mat,
-                  'psd':psd_mat}
+                  'psd':psd_mat,
+                  'spar':Spar}
     else:
         alpha = alpha[burnin:n]
         result = {'phi': phi,
@@ -431,7 +435,8 @@ def mcmc(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,fs=N
                   'knots': knots,
                   'alpha': alpha,
                   'splines_psd':splines_mat,
-                  'psd':psd_mat}
+                  'psd':psd_mat,
+                  'spar':Spar}
     
 
     return result
