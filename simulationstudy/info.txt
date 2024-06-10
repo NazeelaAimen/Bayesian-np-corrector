@@ -1,0 +1,4 @@
+Simulation study:
+Data: AR(4) time series
+n= 128, 256, 512
+methods: Bayesian non parametric correction and psplines
