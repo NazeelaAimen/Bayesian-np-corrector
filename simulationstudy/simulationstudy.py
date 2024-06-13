@@ -73,7 +73,7 @@ for i in range(0,len(n)):
         r_t.append(e_t_r-s_t_r)
         pdgrm=result_r[i]['pdgrm'][1:-1]
         stpy=time.time()
-        result.append(bnpc.mcmc(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
+        result.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
         etpy=time.time()
         p_t.append(etpy-stpy)
 
