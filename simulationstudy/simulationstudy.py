@@ -15,7 +15,7 @@ robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
 mcmcr=importr("psplinePsd")
 
-rd = 0  
+rd = 1  
 #AR(4) coefficients
 a1=0.9
 a2=-0.9
@@ -51,8 +51,8 @@ for i in range(0,len(n)):
 #MCMC:
 k=25
 degree=3
-iterations=10000
-burnin=5000
+iterations=100000
+burnin=50000
 result_r=[]
 result=[]
 r_t=[]
