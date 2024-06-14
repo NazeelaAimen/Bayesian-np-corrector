@@ -90,7 +90,7 @@ for i in range(0,len(n)):
         p_t.append(etpy-stpy)
         # AR(4) 
         stpy_t=time.time()
-        result_t.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}'])), modelnum=1,f=freq[i][f'{n[i]}']))
+        result_t.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}']))), modelnum=1,f=freq[i][f'{n[i]}']))
         etpy_t=time.time()
         p_t_t.append(etpy_t-stpy_t)
 
