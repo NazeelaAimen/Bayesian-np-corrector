@@ -10,6 +10,15 @@ from rpy2.robjects.packages import importr
 import rpy2.robjects as robjects
 import pickle
 import time
+import argparse
+
+##Random seed:
+parser = argparse.ArgumentParser(description='Simulation script with random seed.')
+parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
+args = parser.parse_args()
+rd = args.random_seed
+
+#R
 np_cv_rules = default_converter + numpy2ri.converter
 robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
@@ -115,3 +124,5 @@ with open(f'{rd}resultr_128_256_512.pkl', 'wb') as f:
     pickle.dump(result_r, f)
 
 
+with open(f'{rd}tsereis.pkl', 'wb') as f:
+    pickle.dump(series, f)
