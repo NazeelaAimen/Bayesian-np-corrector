@@ -58,7 +58,7 @@ for i in range(0,len(n)):
 
 
 #MCMC:
-k=25
+k=40
 degree=3
 iterations=100000
 burnin=50000
@@ -122,24 +122,24 @@ for i in range(0,len(n)):
 
 #Outputs:     
 col_names = 'py_AR(1)_iae_128 py_AR(1)_iae_256 py_AR(1)_iae_512 py_AR(4)_iae_128 py_AR(4)_iae_256 py_AR(4)_iae_512 r_iae_128 r_iae_256 r_iae_512'
-np.savetxt(f'{rd}iae.txt', [iae,iae_t,iae_r], header=col_names)
+np.savetxt(f'sim_res/{rd}iae.txt', [iae,iae_t,iae_r], header=col_names)
 
 col_names = 'py_AR(1)_prop_128 py_AR(1)_prop_256 py_AR(1)_prop_512 py_AR(4)_prop_128 py_AR(4)_prop_256 py_AR(4)_prop_512 r_prop_128 r_prop_256 r_prop_512'
-np.savetxt(f'{rd}prop.txt', [prop,prop_t,prop_r], header=col_names)
+np.savetxt(f'sim_res/{rd}prop.txt', [prop,prop_t,prop_r], header=col_names)
 
 
 col_names = 'py_AR(1)_run_t_128 py_AR(1)_run_t_256 py_AR(1)_run_t_512 py_AR(4)_run_t_128 py_AR(4)_run_t_256 py_AR(4)_run_t_512 r_tun_t_128 r_run_t_256 r_run_t_512'
-np.savetxt(f'{rd}runtime.txt',  [p_t,p_t_t,r_t], header=col_names)
+np.savetxt(f'sim_res/{rd}runtime.txt',  [p_t,p_t_t,r_t], header=col_names)
 
-with open(f'{rd}resultpy_AR(1)_128_256_512.pkl', 'wb') as f:
+with open(f'sim_res/{rd}resultpy_AR(1)_128_256_512.pkl', 'wb') as f:
      pickle.dump(result, f)
 
-with open(f'{rd}resultpy_AR(4)_128_256_512.pkl', 'wb') as f:
+with open(f'sim_res/{rd}resultpy_AR(4)_128_256_512.pkl', 'wb') as f:
      pickle.dump(result_t, f)
 
-with open(f'{rd}resultr_128_256_512.pkl', 'wb') as f:
+with open(f'sim_res/{rd}resultr_128_256_512.pkl', 'wb') as f:
     pickle.dump(result_r, f)
 
 
-with open(f'{rd}tsereis.pkl', 'wb') as f:
+with open(f'sim_res/{rd}tsereis.pkl', 'wb') as f:
     pickle.dump(series, f)
