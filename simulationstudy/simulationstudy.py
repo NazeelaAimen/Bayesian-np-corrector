@@ -64,8 +64,10 @@ iterations=100000
 burnin=50000
 result_r=[]
 result=[]
+result_t=[]#result when the parametric model is true psd
 r_t=[]
 p_t=[]
+p_t_t=[]
 for i in range(0,len(n)): 
     y_c=bnpc.cent_series(series[i][f'{n[i]}'])
     with np_cv_rules.context():
@@ -81,24 +83,36 @@ for i in range(0,len(n)):
         e_t_r = time.time()
         r_t.append(e_t_r-s_t_r)
         pdgrm=result_r[i]['pdgrm'][1:-1]
+        # AR(1)
         stpy=time.time()
         result.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
         etpy=time.time()
         p_t.append(etpy-stpy)
+        # AR(4) 
+        stpy_t=time.time()
+        result_t.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}'])), modelnum=1,f=freq[i][f'{n[i]}']))
+        etpy_t=time.time()
+        p_t_t.append(etpy_t-stpy_t)
+
 
 
 
 ####Calculating IAE and prop
 iae=[]
+iae_t=[]
 iae_r=[]
 prop=[]
+prop_t=[]
 prop_r=[]
 for i in range(0,len(n)):
     ci_py = bnpc.compute_ci(result[i]['psd']+2*np.log(np.std(series[i][f'{n[i]}'])))
+    ci_py_t = bnpc.compute_ci(result_t[i]['psd']+2*np.log(np.std(series[i][f'{n[i]}'])))
     ci_r = bnpc.compute_ci((np.log(result_r[i]['fpsd.sample'] * np.std(series[i][f'{n[i]}']) ** 2)[1:-1]).T)
     iae.append(bnpc.compute_iae(np.exp(ci_py.med),np.exp(truepsd[i][f'{n[i]}']),n[i]))
+    iae_t.append(bnpc.compute_iae(np.exp(ci_py_t.med),np.exp(truepsd[i][f'{n[i]}']),n[i]))
     iae_r.append(bnpc.compute_iae(np.exp(ci_r.med),np.exp(truepsd[i][f'{n[i]}']),n[i]))
     prop.append(bnpc.compute_prop(ci_py.u05,ci_py.u95,truepsd[i][f'{n[i]}']))        
+    prop_t.append(bnpc.compute_prop(ci_py_t.u05,ci_py_t.u95,truepsd[i][f'{n[i]}']))
     prop_r.append(bnpc.compute_prop(ci_r.u05,ci_r.u95,truepsd[i][f'{n[i]}']))
 
 
@@ -107,18 +121,21 @@ for i in range(0,len(n)):
 
 
 #Outputs:     
-col_names = 'py_iae_128 py_iae_256 py_iae_512 r_iae_128 r_iae_256 r_iae_512'
-np.savetxt(f'{rd}iae.txt', [iae,iae_r], header=col_names)
+col_names = 'py_AR(1)_iae_128 py_AR(1)_iae_256 py_AR(1)_iae_512 py_AR(4)_iae_128 py_AR(4)_iae_256 py_AR(4)_iae_512 r_iae_128 r_iae_256 r_iae_512'
+np.savetxt(f'{rd}iae.txt', [iae,iae_t,iae_r], header=col_names)
 
-col_names = 'py_prop_128 py_prop_256 py_prop_512 r_prop_128 r_prop_256 r_prop_512'
-np.savetxt(f'{rd}prop.txt', [prop,prop_r], header=col_names)
+col_names = 'py_AR(1)_prop_128 py_AR(1)_prop_256 py_AR(1)_prop_512 py_AR(4)_prop_128 py_AR(4)_prop_256 py_AR(4)_prop_512 r_prop_128 r_prop_256 r_prop_512'
+np.savetxt(f'{rd}prop.txt', [prop,prop_t,prop_r], header=col_names)
 
 
-col_names = 'py_run_t_128 py_run_t_256 py_run_t_512 r_tun_t_128 r_run_t_256 r_run_t_512'
-np.savetxt(f'{rd}runtime.txt',  [p_t,r_t], header=col_names)
+col_names = 'py_AR(1)_run_t_128 py_AR(1)_run_t_256 py_AR(1)_run_t_512 py_AR(4)_run_t_128 py_AR(4)_run_t_256 py_AR(4)_run_t_512 r_tun_t_128 r_run_t_256 r_run_t_512'
+np.savetxt(f'{rd}runtime.txt',  [p_t,p_t_t,r_t], header=col_names)
 
-with open(f'{rd}resultpy_128_256_512.pkl', 'wb') as f:
+with open(f'{rd}resultpy_AR(1)_128_256_512.pkl', 'wb') as f:
      pickle.dump(result, f)
+
+with open(f'{rd}resultpy_AR(4)_128_256_512.pkl', 'wb') as f:
+     pickle.dump(result_t, f)
 
 with open(f'{rd}resultr_128_256_512.pkl', 'wb') as f:
     pickle.dump(result_r, f)
