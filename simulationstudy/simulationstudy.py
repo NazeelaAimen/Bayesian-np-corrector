@@ -24,7 +24,7 @@ robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
 mcmcr=importr("psplinePsd")
 
-rd =   
+rd = 0  
 #AR(4) coefficients
 a1=0.9
 a2=-0.9
