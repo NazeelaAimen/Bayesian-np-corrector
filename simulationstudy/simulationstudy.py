@@ -24,7 +24,7 @@ robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
 mcmcr=importr("psplinePsd")
 
-rd = 1  
+rd =   
 #AR(4) coefficients
 a1=0.9
 a2=-0.9
@@ -60,8 +60,8 @@ for i in range(0,len(n)):
 #MCMC:
 k=40
 degree=3
-iterations=100000
-burnin=50000
+iterations=10000
+burnin=5000
 result_r=[]
 result=[]
 result_t=[]#result when the parametric model is true psd
@@ -85,12 +85,12 @@ for i in range(0,len(n)):
         pdgrm=result_r[i]['pdgrm'][1:-1]
         # AR(1)
         stpy=time.time()
-        result.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
+        result.append(bnpc.mcmc(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
         etpy=time.time()
         p_t.append(etpy-stpy)
         # AR(4) 
         stpy_t=time.time()
-        result_t.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}']))), modelnum=1,f=freq[i][f'{n[i]}']))
+        result_t.append(bnpc.mcmc(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}']))), modelnum=1,f=freq[i][f'{n[i]}']))
         etpy_t=time.time()
         p_t_t.append(etpy_t-stpy_t)
 
@@ -118,7 +118,10 @@ for i in range(0,len(n)):
 
     
 
+# import os
+# os.makedirs(f'sim_res_{n}')
 
+# 
 
 #Outputs:     
 col_names = 'py_AR(1)_iae_128 py_AR(1)_iae_256 py_AR(1)_iae_512 py_AR(4)_iae_128 py_AR(4)_iae_256 py_AR(4)_iae_512 r_iae_128 r_iae_256 r_iae_512'
