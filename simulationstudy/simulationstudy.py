@@ -60,8 +60,8 @@ for i in range(0,len(n)):
 #MCMC:
 k=40
 degree=3
-iterations=10000
-burnin=5000
+iterations=50000
+burnin=25000
 result_r=[]
 result=[]
 result_t=[]#result when the parametric model is true psd
