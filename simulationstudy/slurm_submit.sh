@@ -11,8 +11,8 @@
 
 
 ml gcc/11.3.0 openmpi/4.1.4 python/3.10.4 r/4.2.1
-source /fred/oz303/naimen/bnpc/lisa_venv/activate
-python simulation.py $SLURM_ARRAY_TASK_ID 
+source /fred/oz303/naimen/bnpc/lisa_venv/bin/activate
+python simulationstudy.py $SLURM_ARRAY_TASK_ID 
 
 
 
