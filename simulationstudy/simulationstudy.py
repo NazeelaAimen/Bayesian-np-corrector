@@ -12,11 +12,11 @@ import pickle
 import time
 import argparse
 
-##Random seed:
-parser = argparse.ArgumentParser(description='Simulation script with random seed.')
-parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
-args = parser.parse_args()
-rd = args.random_seed
+# ##Random seed:
+# parser = argparse.ArgumentParser(description='Simulation script with random seed.')
+# parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
+# args = parser.parse_args()
+# rd = args.random_seed
 
 #R
 np_cv_rules = default_converter + numpy2ri.converter
@@ -24,7 +24,7 @@ robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
 mcmcr=importr("psplinePsd")
 
-rd = 0  
+rd = 2  
 #AR(4) coefficients
 a1=0.9
 a2=-0.9
@@ -60,8 +60,8 @@ for i in range(0,len(n)):
 #MCMC:
 k=40
 degree=3
-iterations=50000
-burnin=25000
+iterations=100000
+burnin=50000
 result_r=[]
 result=[]
 result_t=[]#result when the parametric model is true psd
@@ -85,12 +85,12 @@ for i in range(0,len(n)):
         pdgrm=result_r[i]['pdgrm'][1:-1]
         # AR(1)
         stpy=time.time()
-        result.append(bnpc.mcmc(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
+        result.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar[i][f'{n[i]}'], modelnum=1,f=freq[i][f'{n[i]}']))
         etpy=time.time()
         p_t.append(etpy-stpy)
         # AR(4) 
         stpy_t=time.time()
-        result_t.append(bnpc.mcmc(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}']))), modelnum=1,f=freq[i][f'{n[i]}']))
+        result_t.append(bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(truepsd[i][f'{n[i]}']-2*np.log(np.std(series[i][f'{n[i]}']))), modelnum=1,f=freq[i][f'{n[i]}']))
         etpy_t=time.time()
         p_t_t.append(etpy_t-stpy_t)
 
@@ -130,19 +130,17 @@ np.savetxt(f'sim_res/{rd}iae.txt', [iae,iae_t,iae_r], header=col_names)
 col_names = 'py_AR(1)_prop_128 py_AR(1)_prop_256 py_AR(1)_prop_512 py_AR(4)_prop_128 py_AR(4)_prop_256 py_AR(4)_prop_512 r_prop_128 r_prop_256 r_prop_512'
 np.savetxt(f'sim_res/{rd}prop.txt', [prop,prop_t,prop_r], header=col_names)
 
-
 col_names = 'py_AR(1)_run_t_128 py_AR(1)_run_t_256 py_AR(1)_run_t_512 py_AR(4)_run_t_128 py_AR(4)_run_t_256 py_AR(4)_run_t_512 r_tun_t_128 r_run_t_256 r_run_t_512'
 np.savetxt(f'sim_res/{rd}runtime.txt',  [p_t,p_t_t,r_t], header=col_names)
 
 with open(f'sim_res/{rd}resultpy_AR(1)_128_256_512.pkl', 'wb') as f:
-     pickle.dump(result, f)
+    pickle.dump(result, f)
 
 with open(f'sim_res/{rd}resultpy_AR(4)_128_256_512.pkl', 'wb') as f:
-     pickle.dump(result_t, f)
+    pickle.dump(result_t, f)
 
 with open(f'sim_res/{rd}resultr_128_256_512.pkl', 'wb') as f:
     pickle.dump(result_r, f)
-
 
 with open(f'sim_res/{rd}tsereis.pkl', 'wb') as f:
     pickle.dump(series, f)
