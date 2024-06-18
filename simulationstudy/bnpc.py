@@ -162,14 +162,14 @@ def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patr
     aux = np.sqrt(data)
     dens = np.abs(aux - np.mean(aux)) / np.std(aux)
     n = len(data)
-
+    
     dens = dens / np.sum(dens)
     cumf = np.cumsum(dens)
-
+    
     df = interp1d(
         np.linspace(0, 1, num=n), cumf, kind="linear", fill_value=(0, 1)
     )
-
+    
     invDf = interp1d(
         df(np.linspace(0, 1, num=n)),
         np.linspace(0, 1, num=n),
@@ -177,7 +177,14 @@ def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patr
         fill_value=(0, 1),
         bounds_error=False,
     )
-    return invDf(np.linspace(0, 1, num=n_knots))
+    knots=invDf(np.linspace(0, 1, num=n_knots))
+    unique_knots=np.unique(knots)
+    while len(unique_knots) < n_knots:
+        additional_knots = invDf(np.linspace(0, 1, num=(n_knots - len(unique_knots))))+np.random.uniform(low=0, high=1e-10, size=(n_knots - len(unique_knots)))
+        unique_knots=sorted(set(unique_knots).union(set(additional_knots)))
+        unique_knots = np.unique(unique_knots)
+    return unique_knots
+
 
 def generate_basis_matrix(knots,grid_points,degree, normalised: bool = True) -> np.ndarray:#slipper pspline psd
         basis = BSplineBasis(knots=knots,order=degree+1).to_basis()
@@ -270,8 +277,8 @@ def mcmc(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,fs=N
     K = k - degree + 1
     #knots = np.linspace(min(f), max(f), num=K)#Equidistant
     #difference knots:
-    data=abs(Spar-pdgrm)
-    knots=data_peak_knots(pdgrm,K)
+    data=abs(pdgrm-Spar)
+    knots=data_peak_knots(data,K)
     m = max(f) - min(f)
     c = min(f)
     knots = m * knots + c #Linear translation from [0,1] to fourier frequencies range
@@ -473,8 +480,8 @@ def mcmcAMH(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,f
 
     # Knots over Fourier frequencies
     K = k - degree + 1
-    data=abs(Spar-pdgrm)
-    knots=data_peak_knots(pdgrm,K)
+    data=abs(pdgrm-Spar)
+    knots=data_peak_knots(data,K)
     m = max(f) - min(f)
     c = min(f)
     knots = m * knots + c #Linear translation from [0,1] to fourier frequencies range
