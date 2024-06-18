@@ -12,11 +12,11 @@ import pickle
 import time
 import argparse
 
-# ##Random seed:
-# parser = argparse.ArgumentParser(description='Simulation script with random seed.')
-# parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
-# args = parser.parse_args()
-# rd = args.random_seed
+##Random seed:
+parser = argparse.ArgumentParser(description='Simulation script with random seed.')
+parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
+args = parser.parse_args()
+rd = args.random_seed
 
 #R
 np_cv_rules = default_converter + numpy2ri.converter
@@ -79,6 +79,7 @@ for i in range(0,len(n)):
                     degree=3,
                     eqSpacedKnots=False,
                     k=k,
+                    printIter =50000
                 ))
         e_t_r = time.time()
         r_t.append(e_t_r-s_t_r)
@@ -120,7 +121,6 @@ for i in range(0,len(n)):
 
 # import os
 # os.makedirs(f'sim_res_{n}')
-
 # 
 
 #Outputs:     
