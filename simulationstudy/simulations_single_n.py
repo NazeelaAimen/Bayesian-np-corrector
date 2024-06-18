@@ -120,33 +120,33 @@ prop.append(bnpc.compute_prop(ci_py_tMH.u05,ci_py_tMH.u95,truepsd))
 prop.append(bnpc.compute_prop(ci_r.u05,ci_r.u95,truepsd))
     
     
-# import os
-# os.makedirs(f'sim_res_{n}')
-# 
+import os
+os.makedirs(f'sim_res_{n}')
+
 
 #Outputs:     
 col_names = 'pyAMH_AR(1)_iae pyAMH_AR(4)_iae pyMH_AR(1)_iae pyMH_AR(4)_iae r_iae'
-np.savetxt(f'sim_res/{rd}iae.txt', iae, header=col_names)
+np.savetxt(f'sim_res_{n}/{rd}iae.txt', iae, header=col_names)
 
 col_names = 'pyAMH_AR(1)_prop pyAMH_AR(4)_prop pyMH_AR(1)_prop pyMH_AR(4)_prop r_prop'
-np.savetxt(f'sim_res/{rd}prop.txt', prop, header=col_names)
+np.savetxt(f'sim_res_{n}/{rd}prop.txt', prop, header=col_names)
 
 col_names = 'pyAMH_AR(1)_run_t pyAMH_AR(4)_run_t pyMH_AR(1)_run_t pyMH_AR(4) r_tun_t'
-np.savetxt(f'sim_res/{rd}runtime.txt',  [p_t,p_t_t,pMH_t,pMH_t_t,r_t], header=col_names)
+np.savetxt(f'sim_res_{n}/{rd}runtime.txt',  [p_t,p_t_t,pMH_t,pMH_t_t,r_t], header=col_names)
 
-with open(f'sim_res/{rd}resultpyAMH_AR(1)_{n}.pkl', 'wb') as f:
+with open(f'sim_res_{n}/{rd}resultpyAMH_AR(1).pkl', 'wb') as f:
     pickle.dump(result, f)
 
-with open(f'sim_res/{rd}resultpyAMH_AR(4)_{n}.pkl', 'wb') as f:
+with open(f'sim_res_{n}/{rd}resultpyAMH_AR(4).pkl', 'wb') as f:
     pickle.dump(result_t, f)
 
-with open(f'sim_res/{rd}resultpyMH_AR(1)_{n}.pkl', 'wb') as f:
+with open(f'sim_res_{n}/{rd}resultpyMH_AR(1).pkl', 'wb') as f:
     pickle.dump(resultMH, f)
 
-with open(f'sim_res/{rd}resultpyMH_AR(4)_{n}.pkl', 'wb') as f:
+with open(f'sim_res_{n}/{rd}resultpyMH_AR(4).pkl', 'wb') as f:
     pickle.dump(resultMH_t, f)
 
-with open(f'sim_res/{rd}resultr_{n}.pkl', 'wb') as f:
+with open(f'sim_res_{n}/{rd}resultr.pkl', 'wb') as f:
     pickle.dump(result_r, f)
 
 
