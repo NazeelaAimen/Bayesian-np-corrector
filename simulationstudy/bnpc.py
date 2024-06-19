@@ -18,7 +18,10 @@ from scipy.stats import median_abs_deviation
 from typing import List
 from collections import namedtuple
 def mad(x):
-   return np.median(abs(x - np.median(x)))
+    med_abs_dav=np.median(abs(x - np.median(x)))
+    if med_abs_dav==0:
+        med_abs_dav=1e-10
+    return med_abs_dav
 
 def uniformmax(sample):
     median = np.median(sample)
@@ -180,7 +183,7 @@ def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patr
     knots=invDf(np.linspace(0, 1, num=n_knots))
     unique_knots=np.unique(knots)
     while len(unique_knots) < n_knots:
-        additional_knots = invDf(np.linspace(0, 1, num=(n_knots - len(unique_knots))))+np.random.uniform(low=0, high=1e-10, size=(n_knots - len(unique_knots)))
+        additional_knots = np.random.uniform(low=0, high=1, size=(n_knots - len(unique_knots)))
         unique_knots=sorted(set(unique_knots).union(set(additional_knots)))
         unique_knots = np.unique(unique_knots)
     return unique_knots
