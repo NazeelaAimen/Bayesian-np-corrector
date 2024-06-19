@@ -279,9 +279,7 @@ def mcmc(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,fs=N
     # Knots over Fourier frequencies
     K = k - degree + 1
     #knots = np.linspace(min(f), max(f), num=K)#Equidistant
-    #difference knots:
-    data=abs(pdgrm-Spar)
-    knots=data_peak_knots(data,K)
+    knots=data_peak_knots(pdgrm,K)
     m = max(f) - min(f)
     c = min(f)
     knots = m * knots + c #Linear translation from [0,1] to fourier frequencies range
@@ -483,8 +481,7 @@ def mcmcAMH(pdgrm,n,k,burnin,Spar=1,degree=3,modelnum=1,alphastart=None,f=None,f
 
     # Knots over Fourier frequencies
     K = k - degree + 1
-    data=abs(pdgrm-Spar)
-    knots=data_peak_knots(data,K)
+    knots=data_peak_knots(pdgrm,K)
     m = max(f) - min(f)
     c = min(f)
     knots = m * knots + c #Linear translation from [0,1] to fourier frequencies range
