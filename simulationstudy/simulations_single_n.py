@@ -48,8 +48,8 @@ spar=psd_arma(f_r,a1p,ma_ex,sig2p)
 #MCMC:
 k=40
 degree=3
-iterations=10000
-burnin=5000
+iterations=100000
+burnin=50000
 y_c=np.array(bnpc.cent_series(series))
 s_t_r = time.time()
 with np_cv_rules.context():    
