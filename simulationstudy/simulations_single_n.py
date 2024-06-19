@@ -13,7 +13,7 @@ import time
 import argparse
 import pandas as pd
 import os
-#Random seed:
+# #Random seed:
 parser = argparse.ArgumentParser(description='Simulation script with random seed and  ts length')
 parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
 parser.add_argument('length', type=int, help='ts length for the simulation')
@@ -26,7 +26,6 @@ np_cv_rules = default_converter + numpy2ri.converter
 robjects.r['source']('psd_arma.R')
 psd_arma = robjects.globalenv['psd_arma']
 mcmcr=importr("psplinePsd")
-
 
 #AR(4) coefficients
 sig=1
