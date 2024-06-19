@@ -42,7 +42,7 @@ truepsd=[]
 spar=[]
 
 random.seed(rd)
-series=pd.read_csv(f"ts{n}.csv").iloc[rd]
+series=pd.read_csv(f"ts{n}.csv").iloc[rd,:]
 sdser=np.std(series)
 freq=np.pi*( 2 * (np.arange(1, n // 2 + 1) - 1) / n)[1:]
 f_r=robjects.FloatVector(freq)
@@ -53,8 +53,8 @@ spar=psd_arma(f_r,a1p,ma_ex,sig2p)
 #MCMC:
 k=40
 degree=3
-iterations=100000
-burnin=50000
+iterations=10000
+burnin=5000
 y_c=np.array(bnpc.cent_series(series))
 s_t_r = time.time()
 with np_cv_rules.context():    
