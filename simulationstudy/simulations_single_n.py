@@ -35,10 +35,6 @@ sig2p=7.839
 arex_r = robjects.FloatVector(np.array([0.9, -0.9, 0.9, -0.9]))
 ma_ex = robjects.NA_Integer
 #number of data points
-series=[]
-freq=[]
-truepsd=[]
-spar=[]
 
 random.seed(rd)
 series=pd.read_csv(f"ts{n}.csv").iloc[rd,:]
