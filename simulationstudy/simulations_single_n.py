@@ -12,6 +12,7 @@ import pickle
 import time
 import argparse
 import pandas as pd
+import os
 #Random seed:
 parser = argparse.ArgumentParser(description='Simulation script with random seed and  ts length')
 parser.add_argument('random_seed', type=int, help='Random seed for the simulation')
@@ -117,9 +118,11 @@ prop.append(bnpc.compute_prop(ci_pyMH.u05,ci_pyMH.u95,truepsd))
 prop.append(bnpc.compute_prop(ci_py_tMH.u05,ci_py_tMH.u95,truepsd))
 prop.append(bnpc.compute_prop(ci_r.u05,ci_r.u95,truepsd))
     
-    
-import os
-os.makedirs(f'sim_res_{n}')
+
+
+dire=f'sim_res_{n}'    
+if not os.path.exists(dire):
+   os.makedirs(dire)
 
 
 #Outputs:     
