@@ -23,10 +23,10 @@ c_n = [
 
 
 co = ['red', 'blue', 'black', 'green', 'orange']
-fig, axes = plt.subplots(len(n), 1, figsize=(12, 10), sharex=True, sharey=True)
+fig, axes = plt.subplots(len(num), 1, figsize=(12, 10), sharex=True, sharey=True)
 handles=[]
-iae_med = np.zeros((len(n), len(c_n)))
-prop_med = np.zeros((len(n), len(c_n)))
+iae_med = np.zeros((len(num), len(c_n)))
+prop_med = np.zeros((len(num), len(c_n)))
 
 for j, n in enumerate(num):
     f_iae = glob.glob(f'sim_res_{n}/*iae.txt')
