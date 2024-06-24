@@ -44,13 +44,13 @@ sdser=np.std(series)
 freq=np.pi*( 2 * (np.arange(1, n // 2 + 1) - 1) / n)[1:]
 f_r=robjects.FloatVector(freq)
 truepsd=np.log(psd_arma(f_r,arex_r,ma_ex,sig))
-spar=psd_arma(f_r,a1p,ma_ex,sig2p)
+spar=np.log(psd_arma(f_r,a1p,ma_ex,sig2p))
 
 
 #MCMC:
 k=25
 degree=3
-iterations=250000
+iterations=200000
 burnin=150000
 y_c=np.array(bnpc.cent_series(series))
 s_t_r = time.time()
@@ -71,7 +71,7 @@ pdgrm=result_r['pdgrm'][1:-1]
 #AR(1)
 #AMH
 stpy=time.time()
-result=bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=spar, modelnum=1,f=freq)
+result=bnpc.mcmcAMH(pdgrm=pdgrm, n=iterations, k=k, burnin=burnin, Spar=np.exp(spar-2*np.log(sdser)), modelnum=1,f=freq)
 etpy=time.time()
 p_t=etpy-stpy
 
@@ -97,20 +97,20 @@ prop.append(bnpc.compute_prop(ci_py_t.u05,ci_py_t.u95,truepsd))
     
 
 
-dire=f'sim_res_{n}'    
+dire=f'test_sim_{n}'    
 if not os.path.exists(dire):
    os.makedirs(dire)
 
 
 #Outputs:     
-col_names = 'pyAMH_AR(1)_iae pyAMH_AR(4)_iae pyMH_AR(1)_iae pyMH_AR(4)_iae r_iae'
+col_names = 'pyAMH_AR(1)_iae pyAMH_AR(4)_iae'
 np.savetxt(f'sim_res_{n}/{rd}iae.txt', iae, header=col_names)
 
-col_names = 'pyAMH_AR(1)_prop pyAMH_AR(4)_prop pyMH_AR(1)_prop pyMH_AR(4)_prop r_prop'
+col_names = 'pyAMH_AR(1)_prop pyAMH_AR(4)_prop'
 np.savetxt(f'sim_res_{n}/{rd}prop.txt', prop, header=col_names)
 
-col_names = 'pyAMH_AR(1)_run_t pyAMH_AR(4)_run_t pyMH_AR(1)_run_t pyMH_AR(4) r_tun_t'
-np.savetxt(f'sim_res_{n}/{rd}runtime.txt',  [p_t,p_t_t,pMH_t,pMH_t_t,r_t], header=col_names)
+col_names = 'pyAMH_AR(1)_run_t pyAMH_AR(4)_run_t'
+np.savetxt(f'sim_res_{n}/{rd}runtime.txt',  [p_t,p_t_t], header=col_names)
 
 
 
