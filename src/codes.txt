@@ -1,1 +1,0 @@
-The core computation of the algorithm
