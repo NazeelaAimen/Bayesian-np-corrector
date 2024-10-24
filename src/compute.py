@@ -10,7 +10,7 @@ from core import dens,lpost,psd, tot_psd, prior_sum,lamb_lprior,phi_lprior,delta
 from my_signal import brokenPower, power_law
 from scipy.stats import multivariate_normal
 
-def llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T, ind):
+def llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T):
     """
     This function computes the likelihood, priorsum, and PSD based on the signal model provided and updates the results at a specified index.
 
@@ -35,9 +35,9 @@ def llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E,
     """
     
     if signal_model is None:
-        prisum = prior_sum(lamb_lprior(lam, phi[ind], P, k), 
-                           phi_lprior(phi[ind], delta[ind]), 
-                           delta_lprior(delta[ind]))
+        prisum = prior_sum(lamb_lprior(lam, phi, P, k), 
+                            phi_lprior(phi, delta), 
+                            delta_lprior(delta))
         S = noise
         
         llike = loglike1(T, S)
@@ -45,19 +45,19 @@ def llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E,
     
     else:
         if signal_model == 2:
-            sig = brokenPower(b[ind], g[ind], psi[ind], f)
-            prisum = prior_sum(lamb_lprior(lam, phi[ind], P, k), 
-                               phi_lprior(phi[ind], delta[ind]), 
-                               delta_lprior(delta[ind]),
-                               b_lprior(b[ind]), glprior(g[ind]), 
-                               psilprior(psi[ind]))
+            sig = brokenPower(b, g, psi, f)
+            prisum = prior_sum(lamb_lprior(lam, phi, P, k), 
+                                phi_lprior(phi, delta), 
+                                delta_lprior(delta),
+                                b_lprior(b), glprior(g), 
+                                psilprior(psi))
             
         else:
-            sig = power_law(b[ind], g[ind], f)
-            prisum = prior_sum(lamb_lprior(lam, phi[ind], P, k), 
-                               phi_lprior(phi[ind], delta[ind]), 
-                               delta_lprior(delta[ind]),
-                               b_lprior(b[ind]), glprior(g[ind]))
+            sig = power_law(b, g, f)
+            prisum = prior_sum(lamb_lprior(lam, phi, P, k), 
+                                phi_lprior(phi, delta), 
+                                delta_lprior(delta),
+                                b_lprior(b), glprior(g))
         
         S = tot_psd(noise, sig)
         
@@ -65,7 +65,7 @@ def llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E,
     
     return llike, prisum, S, sig
 
-def update_lambda(lam, sigma, accept_frac, k, signal_model, phi, delta, b, g, psi, f, P, Spar, modelnum, splines, s_s, A, E, T, i):
+def update_lambda(lam, sigma, accept_frac, k, signal_model, phi, delta, b, g, psi, f, P, Spar, modelnum, splines, s_s, A, E, T):
     """
     Updating lambda vector using MH
     """
@@ -89,13 +89,13 @@ def update_lambda(lam, sigma, accept_frac, k, signal_model, phi, delta, b, g, ps
 
        
         noise = psd(dens(lam, splines.T), Spar=Spar, modelnum=modelnum)
-        llike, prisum, S, sig = llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T,  i - 1)
+        llike, prisum, S, sig = llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T)
         ftheta = lpost(llike, prisum)
 
        
         lam[pos] = lam_star
         noise = psd(dens(lam, splines.T), Spar=Spar, modelnum=modelnum)
-        llike, prisum, S, sig = llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T, i - 1)
+        llike, prisum, S, sig = llike_psum_s(signal_model, lam, phi, delta, b, g, psi, f, P, k, noise, A, E, T)
         ftheta_star = lpost(llike, prisum)
 
         
@@ -108,4 +108,3 @@ def update_lambda(lam, sigma, accept_frac, k, signal_model, phi, delta, b, g, ps
             accept_count += 1
 
     return lam, sigma, accept_count
-
