@@ -15,7 +15,7 @@ def binned_knots(
     data_bin_edges: List,
     f: List,
     data_bin_weights: List,
-    log_data=False,
+    log_data: bool,
 ) -> np.ndarray:
     """Returns the knot vector"""
 
@@ -112,8 +112,10 @@ def binned_knots(
 
     return knots
 
-def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patricio's pspline paper
-    aux = np.sqrt(data)
+def data_peak_knots(data: np.ndarray, n_knots: int, log_data: bool) -> np.ndarray:#based on Patricio's pspline paper
+    aux = data
+    if not log_data:
+        aux = np.sqrt(aux)
     dens = np.abs(aux - np.mean(aux)) / np.std(aux)
     n = len(data)
     
@@ -140,19 +142,29 @@ def data_peak_knots(data: np.ndarray, n_knots: int) -> np.ndarray:#based on Patr
     return unique_knots
 
 def knot_loc(
-    data: np.ndarray,
+    pdgrm: np.ndarray,
+    Spar: np.ndarray,
     n_knots: int,
+    degree: int,
     f: List,
     data_bin_edges= None,
     data_bin_weights= None,
     log_data=False,
     equidistant=False,
 ) -> np.ndarray:
+    #knots over Fourier frequencies
+    m = max(f) - min(f)
+    c = min(f)
     if equidistant:
-        return(np.linspace(min(f), max(f), num=n_knots))
+        return(m * np.linspace(min(f), max(f), num=int(n_knots)) + c)
+    n_knots = n_knots - degree + 1
+    data=Spar-pdgrm #difference between periodogram and parametric model
+    data=data-min(data)+1e-9 #translating so that it is positive and does not loose any variation
+    if log_data:
+        data=np.log(Spar)-np.log(pdgrm)
     if data_bin_edges is None:
-        return(data_peak_knots(data=data, n_knots=n_knots))
+        return(m * data_peak_knots(data=data, n_knots=n_knots,log_data=log_data) + c)
     else:
-        return(binned_knots(data=data,n_knots=n_knots,data_bin_edges=data_bin_edges,f=f,data_bin_weights= data_bin_weights,log_data=log_data))
+        return(m* binned_knots(data=data,n_knots=n_knots,data_bin_edges=data_bin_edges,f=f,data_bin_weights= data_bin_weights,log_data=log_data) + c)
     
     
